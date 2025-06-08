@@ -1,7 +1,7 @@
-# Use official lightweight Python image
+# Use lightweight Python image
 FROM python:3.10-slim
 
-# Install system dependencies
+# Install system packages
 RUN apt update && apt install -y \
     ffmpeg \
     wget \
@@ -11,11 +11,11 @@ RUN apt update && apt install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy files from local folder to the image
+# Copy code
 COPY . .
 
-# Install Python packages
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Start the Flask app
+# Run Flask app
 CMD ["python", "app.py"]
