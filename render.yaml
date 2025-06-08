@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: aishort-api
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
