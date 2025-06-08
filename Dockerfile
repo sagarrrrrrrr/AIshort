@@ -1,23 +1,28 @@
+# Use a slim Python base
 FROM python:3.10-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y ffmpeg wget curl && rm -rf /var/lib/apt/lists/*
+# Install system dependencies required by MoviePy & fonts
+RUN apt update && apt install -y \
+    ffmpeg \
+    wget \
+    fonts-dejavu-core \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip
-
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-# Copy app code
+# Copy app files
 COPY . .
 
-# Expose port
+# Install Python packages
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Expose Flask port
 EXPOSE 5000
 
-# Start app
+# Start the app
 CMD ["python", "app.py"]
