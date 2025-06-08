@@ -26,16 +26,20 @@ def render_video():
     output_path = f"renders/{uid}_output.mp4"
 
     try:
+        # Save quote as text file for ffmpeg overlay
         with open(text_path, "w") as f:
             f.write(quote)
 
+        # Download video and music
         subprocess.run(["wget", "-O", video_path, video_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         subprocess.run(["wget", "-O", music_path, music_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+        # Font path fallback logic
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         if not os.path.exists(font_path):
-            font_path = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"  # fallback
+            font_path = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
 
+        # ffmpeg command
         command = [
             "ffmpeg",
             "-i", video_path,
@@ -69,6 +73,7 @@ def render_video():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ This is critical for Render or Docker
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
