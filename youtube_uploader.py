@@ -21,7 +21,7 @@ def upload_video(video_path, title, description):
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'client_secret_1044752299120-jaoul3v39ui43fvs7cbsnq1a9io2afvr.apps.googleusercontent.com.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_console()
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
