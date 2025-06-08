@@ -1,21 +1,23 @@
-# Use lightweight Python image
 FROM python:3.10-slim
-
-# Install system packages
-RUN apt update && apt install -y \
-    ffmpeg \
-    wget \
-    fonts-dejavu-core \
-    fonts-freefont-ttf
 
 # Set working directory
 WORKDIR /app
 
-# Copy code
+# Install system dependencies
+RUN apt-get update && apt-get install -y ffmpeg wget curl && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --upgrade pip
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Copy app code
 COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Expose port
+EXPOSE 5000
 
-# Run Flask app
+# Start app
 CMD ["python", "app.py"]
