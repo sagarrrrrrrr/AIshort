@@ -1,85 +1,42 @@
-from flask import Flask, request, send_file, jsonify, after_this_request
+# app.py
+from flask import Flask, request, jsonify
+from movie_generator import generate_video
+from youtube_uploader import upload_video
 import os
-import uuid
-import subprocess
 
 app = Flask(__name__)
 
-# Ensure output folder exists
-os.makedirs("renders", exist_ok=True)
-
 @app.route("/render", methods=["POST"])
-def render_video():
+def render():
     data = request.json
-
     quote = data.get("quote")
     video_url = data.get("video_url")
     music_url = data.get("music_url")
 
     if not all([quote, video_url, music_url]):
-        return jsonify({"error": "Missing required fields."}), 400
-
-    uid = str(uuid.uuid4())
-    video_path = f"renders/{uid}_video.mp4"
-    music_path = f"renders/{uid}_music.mp3"
-    text_path = f"renders/{uid}_text.txt"
-    output_path = f"renders/{uid}_output.mp4"
+        return jsonify({"error": "Missing fields"}), 400
 
     try:
-        with open(text_path, "w") as f:
-            f.write(quote)
-
-        # Download video
-        subprocess.run(["wget", "-O", video_path, video_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # Download music
-        subprocess.run(["wget", "-O", music_path, music_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # Font path for drawtext
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if not os.path.exists(font_path):
-            font_path = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"  # fallback
-
-        # FFmpeg command
-        command = [
-            "ffmpeg",
-            "-i", video_path,
-            "-vf",
-            f"drawtext=fontfile={font_path}:textfile={text_path}:fontcolor=white:fontsize=48:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=h-150",
-            "-i", music_path,
-            "-shortest",
-            "-y",
-            output_path
-        ]
-
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print("✅ FFmpeg stdout:\n", result.stdout)
-        print("⚠️ FFmpeg stderr:\n", result.stderr)
-
-        if not os.path.exists(output_path):
-            return jsonify({"error": "Rendered file not found"}), 500
-
-        @after_this_request
-        def cleanup(response):
-            for file in [video_path, music_path, text_path, output_path]:
-                if os.path.exists(file):
-                    os.remove(file)
-            return response
-
-        return send_file(output_path, mimetype="video/mp4")
-
-    except subprocess.CalledProcessError as e:
-        print("❌ Subprocess error:")
-        print("STDOUT:", e.stdout)
-        print("STDERR:", e.stderr)
-        return jsonify({
-            "error": "Subprocess failed.",
-            "details": e.stderr or e.stdout or str(e)
-        }), 500
+        output_path = generate_video(quote, video_url, music_url)
+        return jsonify({"message": "Video created", "path": output_path})
     except Exception as e:
-        print("❌ General error:", str(e))
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/upload", methods=["POST"])
+def upload():
+    data = request.json
+    video_path = data.get("path")
+    title = data.get("title", "Motivational Short")
+    desc = data.get("description", "Automated YouTube upload")
+
+    if not video_path or not os.path.exists(video_path):
+        return jsonify({"error": "Invalid video path"}), 400
+
+    try:
+        youtube_url = upload_video(video_path, title, desc)
+        return jsonify({"message": "Uploaded", "url": youtube_url})
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
