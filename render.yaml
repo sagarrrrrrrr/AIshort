@@ -1,6 +1,10 @@
 services:
   - type: web
-    name: aishort-api
+    name: flask-youtube-shorts
     env: docker
     plan: free
-    dockerfilePath: Dockerfile
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 5000
