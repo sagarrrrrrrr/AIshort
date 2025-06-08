@@ -26,20 +26,21 @@ def render_video():
     output_path = f"renders/{uid}_output.mp4"
 
     try:
-        # Save quote as text file for ffmpeg overlay
         with open(text_path, "w") as f:
             f.write(quote)
 
-        # Download video and music
+        # Download video
         subprocess.run(["wget", "-O", video_path, video_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # Download music
         subprocess.run(["wget", "-O", music_path, music_url], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        # Font path fallback logic
+        # Font path for drawtext
         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         if not os.path.exists(font_path):
-            font_path = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
+            font_path = "/usr/share/fonts/truetype/freefont/FreeSans.ttf"  # fallback
 
-        # ffmpeg command
+        # FFmpeg command
         command = [
             "ffmpeg",
             "-i", video_path,
@@ -51,7 +52,9 @@ def render_video():
             output_path
         ]
 
-        subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print("✅ FFmpeg stdout:\n", result.stdout)
+        print("⚠️ FFmpeg stderr:\n", result.stderr)
 
         if not os.path.exists(output_path):
             return jsonify({"error": "Rendered file not found"}), 500
@@ -66,14 +69,17 @@ def render_video():
         return send_file(output_path, mimetype="video/mp4")
 
     except subprocess.CalledProcessError as e:
+        print("❌ Subprocess error:")
+        print("STDOUT:", e.stdout)
+        print("STDERR:", e.stderr)
         return jsonify({
             "error": "Subprocess failed.",
-            "details": e.stderr
+            "details": e.stderr or e.stdout or str(e)
         }), 500
     except Exception as e:
+        print("❌ General error:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# ✅ This is critical for Render or Docker
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
